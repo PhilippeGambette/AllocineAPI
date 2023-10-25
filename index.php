@@ -9,31 +9,43 @@ if (isset($_GET['id'])) {
    // Fournir un résultat en JSON :
    header('content-type:application/json');
 
-   // On récupère le code HTML de la page Allociné correspondant à l'id,
-   // qu'on stocke dans la variable $page
-   $page = file_get_contents('https://www.allocine.fr/film/fichefilm_gen_cfilm=' . $id . '.html');
+   $foundError = 0;
+   if (($page = @file_get_contents('https://www.allocine.fr/film/fichefilm_gen_cfilm=' . $id . '.html')) === false) {
+      $error = error_get_last();
+      $foundError = 1;
+} else {
+      // On récupère le code HTML de la page Allociné correspondant à l'id,
+      // qu'on stocke dans la variable $page
+      
 
-   // Récupération de l'affiche du film
-   // On identifie la portion de code HTML qui contient l'URL de l'affiche du film
-   $pos = strpos($page, 'class="thumbnail-img" src="https://');
-   $pos2 = strpos($page, '"', $pos + 28);
+      // Récupération de l'affiche du film
+      // On identifie la portion de code HTML qui contient l'URL de l'affiche du film
+      $pos = strpos($page, 'class="thumbnail-img" src="https://');
+      $pos2 = strpos($page, '"', $pos + 28);
 
-   // On récupère uniquement l'URL de l'affiche
-   $urlAffiche = "";
-   $urlAffiche = substr($page, $pos + 27, $pos2 - $pos - 27);
+      // On récupère uniquement l'URL de l'affiche
+      $urlAffiche = "";
+      $urlAffiche = substr($page, $pos + 27, $pos2 - $pos - 27);
 
-   // Récupération de la bande annonce du film
-   // On identifie la portion de code HTML qui contient l'URL de la bande annonce du film
-   $pos = strpos($page, 'href="/video/player_gen_cmedia=');
-   $pos2 = strpos($page, '&', $pos + 31);
-   
-   // On récupère uniquement l'URL de la bande annonce
-   $urlBandeAnnonce = "";
-   $urlBandeAnnonce = "https://player.allocine.fr/" . substr($page, $pos + 31, $pos2 - $pos - 31) . ".html";
+      // Récupération de la bande annonce du film
+      // On identifie la portion de code HTML qui contient l'URL de la bande annonce du film
+      $pos = strpos($page, 'href="/video/player_gen_cmedia=');
+      $pos2 = strpos($page, '&', $pos + 31);
 
-   // On crée un tableau de résultats
-   $result = array("id" => $id, "urlAffiche" => $urlAffiche, "urlBandeAnnonce" => $urlBandeAnnonce);
+      // On récupère uniquement l'URL de la bande annonce
+      $urlBandeAnnonce = "";
+      $urlBandeAnnonce = "https://player.allocine.fr/" . substr($page, $pos + 31, $pos2 - $pos - 31) . ".html";
 
+      if($pos === false){
+         $urlBandeAnnonce = "";
+      }
+
+      // On crée un tableau de résultats
+      $result = array("id" => $id, "urlAffiche" => $urlAffiche, "urlBandeAnnonce" => $urlBandeAnnonce);
+   }
+   if ($foundError > 0){
+      $result = array("error" => "Identifiant du film non trouvé sur Allociné");
+   }
    echo (json_encode($result));
 } else {
    echo "
